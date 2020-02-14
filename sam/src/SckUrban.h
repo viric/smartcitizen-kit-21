@@ -26,6 +26,7 @@ class SckBase;
 // Pins
 const uint8_t pinPM_SERIAL_RX = pinBOARD_CONN_11;
 const uint8_t pinPM_SERIAL_TX = pinBOARD_CONN_13;
+const uint8_t pinCCS811_WAKE = pinBOARD_CONN_7;
 
 enum SensorState
 {

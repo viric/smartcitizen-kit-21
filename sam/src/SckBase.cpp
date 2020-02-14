@@ -1382,6 +1382,9 @@ void SckBase::goToSleep()
 	// Recover Noise sensor timer
 	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
 	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	// Wake Up CCS811 sensor (This doesn't do nothing if the sensor is already started)
+	urban.start(SENSOR_CCS811_VOCS);
 }
 void SckBase::updatePower()
 {

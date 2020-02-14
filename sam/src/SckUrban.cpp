@@ -1033,6 +1033,9 @@ bool Sck_CCS811::start()
 {
 	if (alreadyStarted) return true;
 
+	pinMode(pinCCS811_WAKE, OUTPUT);
+	digitalWrite(pinCCS811_WAKE, LOW);
+
 	if (ccs.begin() != CCS811Core::SENSOR_SUCCESS) return false;
 
 	if (ccs.setDriveMode(driveMode) != CCS811Core::SENSOR_SUCCESS) return false;
@@ -1049,6 +1052,10 @@ bool Sck_CCS811::stop()
 	if (ccs.setDriveMode(0) != CCS811Core::SENSOR_SUCCESS) return false;
 	alreadyStarted = false;
 	startTime = 0;
+
+	// Go to Sleep mode (extra power saving)
+	digitalWrite(pinCCS811_WAKE, HIGH);
+
 	return true;
 }
 bool Sck_CCS811::getReading(SckBase *base)
