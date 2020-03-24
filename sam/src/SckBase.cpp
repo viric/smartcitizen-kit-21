@@ -108,6 +108,12 @@ void SckBase::setup()
 	charger.setup(this);
 	battery.setup();
 
+	// After sanity reset go directly to sleep
+	if (st.timeStat.ok) {
+		time_t tc = rtc.getEpoch();
+		struct tm* tmp = gmtime(&tc);
+		if (tmp->tm_hour == wakeUP_H && tmp->tm_min == wakeUP_M) deltaSanityReset = config.sleepTimer * 60000;
+	}
 
 	// Urban board
 	analogReadResolution(12);
@@ -311,6 +317,8 @@ void SckBase::reviewState()
 
 			if (!st.wifiStat.ok) {
 
+				updateSensors(); 			// To avoid reading delay while publishing sensors
+
 				st.wifiStat.retry();
 
 				if (!st.espON) ESPcontrol(ESP_ON);
@@ -327,7 +335,6 @@ void SckBase::reviewState()
 					lastPublishTime = rtc.getEpoch();
 					st.wifiStat.reset(); 		// Restart wifi retry count
 
-					updateSensors(); 	// Keep getting readings, we can keep them in flash
 					infoPublished = true; 	// Will try to publish info on next boot, in the meantime this will allow us to sleep between readings.
 				}
 
@@ -383,6 +390,7 @@ void SckBase::reviewState()
 
 				} else if (timeToPublish) {
 
+					updateSensors(); 			// To avoid reading delay while publishing sensors
 					if (st.publishStat.ok) {
 
 						lastPublishTime = rtc.getEpoch();
@@ -423,22 +431,18 @@ void SckBase::reviewState()
 					} else if (readingsList.countGroups() > 0) {
 
 						if (st.publishStat.retry()) netPublish();
-					} else {
-						updateSensors();
 					}
 				}
 			}
 		} else {
+			uint16_t sleepPeriod = 3; 										// Only sleep if
+			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
+					(pendingSensors <= 0) && 								// No sensor to wait to
+					(st.timeStat.ok) && 									// RTC is synced and working
+					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 								// sleep is enabled
 
-
-			while ( 	!charger.onUSB && 					// No USB connected
-					!timeToPublish && 					// No need to publish
-					pendingSensors <= 0 && 					// No sensor to wait to
-					st.timeStat.ok && 					// RTC is synced and working
-					millis() - lastUserEvent > waitAfterLastEvent) { 	// No recent user interaction (button, sdcard or USB events)
-
-
-				goToSleep();
+				goToSleep(sleepPeriod * 1000);
 
 				// Let the led be visible for one instant (and start breathing if we need to read sensors)
 				led.update(led.BLUE2, led.PULSE_STATIC, true);
@@ -510,16 +514,14 @@ void SckBase::reviewState()
 			}
 
 		} else {
+			uint16_t sleepPeriod = 3; 										// Only sleep if
+			while ( 	(config.readInterval - (rtc.getEpoch() - lastSensorUpdate) > sleepPeriod + 1) && 	// No publish in the near future
+					(pendingSensors <= 0) && 								// No sensor to wait to
+					(st.timeStat.ok) && 									// RTC is synced and working
+					((millis() - lastUserEvent + deltaSanityReset) > (config.sleepTimer * 60000)) && 	// No recent user interaction (button, sdcard or USB events)
+					(config.sleepTimer > 0)) { 								// sleep is enabled
 
-												// Conditions to go to sleep
-			while ( 	!charger.onUSB && 					// No USB connected
-					!timeToPublish && 					// No need to publish
-					pendingSensors <= 0 && 					// No sensor to wait to
-					st.timeStat.ok && 					// RTC is synced and working
-					millis() - lastUserEvent > waitAfterLastEvent) { 	// No recent user interaction (button, sdcard or USB events)
-
-
-				goToSleep();
+				goToSleep(sleepPeriod * 1000);
 
 				// Let the led be visible for one instant (and start breathing if we need to read sensors)
 				led.update(led.PINK2, led.PULSE_STATIC, true);
@@ -530,9 +532,8 @@ void SckBase::reviewState()
 				updatePower();
 			}
 
-			updateSensors();
-
 			led.update(led.PINK, led.PULSE_SOFT);
+			updateSensors();
 			if (st.espON) ESPcontrol(ESP_OFF);
 
 			if (readingsList.countGroups() > 0) {
@@ -576,7 +577,6 @@ void SckBase::printState()
 	sprintf(outBuff, "%shelloPending: %s\r\n", outBuff, st.helloPending  ? t : f);
 	sprintf(outBuff, "%smode: %s\r\n", outBuff, modeTitles[st.mode]);
 	sprintf(outBuff, "%scardPresent: %s\r\n", outBuff, st.cardPresent  ? t : f);
-	sprintf(outBuff, "%ssleeping: %s\r\n", outBuff, st.sleeping  ? t : f);
 	sprintf(outBuff, "%sinfoPublished: %s\r\n", outBuff, infoPublished  ? t : f);
 	sckOut(PRIO_HIGH, false);
 
@@ -764,7 +764,7 @@ void SckBase::saveConfig(bool defaults)
 
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
-			config.sensors[i].everyNint = 1;
+			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
 		pendingSyncConfig = true;
 	} else {
@@ -1327,7 +1327,7 @@ void SckBase::sck_reset()
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
-void SckBase::goToSleep()
+void SckBase::goToSleep(uint16_t sleepPeriod)
 {
 	led.off();
 	if (st.espON) ESPcontrol(ESP_OFF);
@@ -1362,7 +1362,7 @@ void SckBase::goToSleep()
 		LowPower.deepSleep();
 	} else {
 
-		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepTime) / 1000.0);
+		sprintf(outBuff, "Sleeping for %.2f seconds", (sleepPeriod) / 1000.0);
 		sckOut();
 
 		st.sleeping = true;
@@ -1370,10 +1370,8 @@ void SckBase::goToSleep()
 		// Turn off USB led
 		digitalWrite(pinLED_USB, HIGH);
 
-		LowPower.deepSleep(sleepTime);
+		LowPower.deepSleep(sleepPeriod);
 	}
-
-	st.sleeping = false;
 
 	// Re enable Sanity cyclic reset
 	rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
@@ -1439,16 +1437,14 @@ void SckBase::updatePower()
 				}
 
 				// Ignore last user event and go to sleep
-				lastUserEvent = millis() - waitAfterLastEvent;
+				lastUserEvent = 0;
 
-				sleepTime = 60000;
 				// Wake up every minute to check if USB power is back
 				while (!charger.onUSB) {
-					goToSleep();
-					charger.detectUSB(this); 	// When USB is detecteed the kit should reset to start on clean state
-					if (millis() - lastUserEvent < waitAfterLastEvent) break;  // Wakeup on user interaction (will go to sleep again after sone blinks)
+					goToSleep(60000);
+					charger.detectUSB(this);  // When USB is detecteed the kit should reset to start on clean state
+					if (millis() - lastUserEvent < (config.sleepTimer * 60000)) break;  // Wakeup on user interaction (will go to sleep again after sone blinks)
 				}
-				sleepTime = 2500; 			// Return to runtime default sleep period (in theory this is not needed, but just in case)
 			}
 
 		// Low Batt
@@ -1494,30 +1490,31 @@ void SckBase::updateSensors()
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
 
 			// Get next sensor based on priority
-			OneSensor wichSensor = sensors[sensors.sensorsPriorized(i)];
+			OneSensor *wichSensor = &sensors[sensors.sensorsPriorized(i)];
 
 			// Check if it is enabled
-			if (wichSensor.enabled) {
+			if (wichSensor->enabled) {
 
 				// Is time to read it?
-				if ((lastSensorUpdate - wichSensor.lastReadingTime) >= (wichSensor.everyNint * config.readInterval)) {
+				if ((lastSensorUpdate - wichSensor->lastReadingTime) >= (wichSensor->everyNint * config.readInterval)) {
 
-					if (!getReading(&wichSensor)) {
+					wichSensor->lastReadingTime = lastSensorUpdate;
 
-						pendingSensorsList[pendingSensors] = wichSensor.type;
+					if (!getReading(wichSensor)) {
+
+						pendingSensorsList[pendingSensors] = wichSensor->type;
 						pendingSensors++;
 
 					} else {
 						// Save reading
-						if (!readingsList.appendReading(wichSensor.type, wichSensor.reading)) sckOut("Failed saving reading!!!");
-						wichSensor.lastReadingTime = lastSensorUpdate;
-						sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+						if (!readingsList.appendReading(wichSensor->type, wichSensor->reading)) sckOut("Failed saving reading!!!");
+						sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 						sckOut();
 					}
 				}
 			}
 		}
-		if (pendingSensors == 0) {
+		if (pendingSensors == 0 && readingsList.countReadings(readingsList.countGroups()) > 0) {
 			if (!readingsList.saveLastGroup()) sckOut("Failed saving reading Group!!");
 			sckOut("-----------", PRIO_LOW);
 		}
@@ -1529,19 +1526,18 @@ void SckBase::updateSensors()
 
 		for (uint8_t i=0; i<pendingSensors; i++) {
 
-			OneSensor wichSensor = sensors[pendingSensorsList[i]];
+			OneSensor *wichSensor = &sensors[pendingSensorsList[i]];
 
-			if (!getReading(&wichSensor)) {
+			if (!getReading(wichSensor)) {
 
 				// Reappend the sensor to the pending list
-				tmpPendingSensorList[i] = wichSensor.type;
+				tmpPendingSensorList[i] = wichSensor->type;
 				tmpPendingSensors ++;
 
 			} else  {
 				// Save reading
-				if (!readingsList.appendReading(wichSensor.type, wichSensor.reading)) sckOut("Failed saving reading!!!");
-				wichSensor.lastReadingTime = lastSensorUpdate;
-				sprintf(outBuff, "%s: %s %s", wichSensor.title, wichSensor.reading.c_str(), wichSensor.unit);
+				if (!readingsList.appendReading(wichSensor->type, wichSensor->reading)) sckOut("Failed saving reading!!!");
+				sprintf(outBuff, "%s: %s %s", wichSensor->title, wichSensor->reading.c_str(), wichSensor->unit);
 				sckOut();
 			}
 		}
@@ -1555,9 +1551,9 @@ void SckBase::updateSensors()
 		}
 	}
 
-
-	if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) {
-		timeToPublish = true;
+	if (readingsList.countGroups() > 0) { 								// Only make sense to publish if there is readings available
+		if (rtc.getEpoch() - lastPublishTime >= config.publishInterval) timeToPublish = true; 	// Time to publish
+		else if ((millis() - lastUserEvent < (config.sleepTimer * 60000)) || config.sleepTimer == 0) timeToPublish = true; 	// If there is recent user interaction we want to publish as often as posible.
 	}
 }
 bool SckBase::enableSensor(SensorType wichSensor)
