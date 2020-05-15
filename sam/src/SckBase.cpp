@@ -282,14 +282,18 @@ void SckBase::reviewState()
                 urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
             }
         }
-        uint32_t periodStart = startTime;
-        if (lastBaselineWrite != 0)
-            periodStart = lastBaselineWrite;
-        uint32_t daysSinceWrite = (rtc.getEpoch() - periodStart) / (60 * 60 * 24);
-        if (daysSinceWrite > 7)
+
+        if (runinPassed)
         {
-            saveCCS811Baseline();
-            lastBaselineWrite = rtc.getEpoch();
+            uint32_t periodStart = startTime;
+            if (lastBaselineWrite != 0)
+                periodStart = lastBaselineWrite;
+            uint32_t daysSinceWrite = (rtc.getEpoch() - periodStart) / (60 * 60 * 24);
+            if (daysSinceWrite > 7)
+            {
+                saveCCS811Baseline();
+                lastBaselineWrite = rtc.getEpoch();
+            }
         }
     }
 
@@ -1336,7 +1340,7 @@ bool SckBase::saveInfo()
 void SckBase::saveCCS811Baseline()
 {
 	// Save updated CCS sensor baseline
-	if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
+	if (runinPassed && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
 		uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
 		if (savedBaseLine != 0)	{
 			sprintf(outBuff, "Saved CCS baseline on eeprom: %u", savedBaseLine);
