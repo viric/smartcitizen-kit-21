@@ -1,12 +1,14 @@
 
 # Frontend + api setup
-You can see the (master branch) mobile UI setup [here](https://fablabbcn.github.io/smartcitizen-kit-21/esp/build_data/)
+You can see the (master branch) mobile UI setup [here](https://fablabbcn.github.io/smartcitizen-kit-21/esp/build_data/index.html)
 
 The technology used here is:
 * HTML, CSS, JavaScript
 * Vue.js
 
 And the files are under *esp/build_data*
+
+[Here](process.md) you can read about why we chose Vue.js and what the thought process was like.
 
 ## Starting frontend development
 
