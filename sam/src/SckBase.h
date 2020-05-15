@@ -166,6 +166,10 @@ class SckBase
 		bool sdPublish();
 		uint8_t pendingSensors = 0;
 		SensorType pendingSensorsList[SENSOR_COUNT];
+        uint32_t startTime = 0;
+        uint32_t lastBaselineWrite = 0;
+        bool runinPassed = false;
+        void saveCCS811Baseline();
 
 		// Timers
 		bool alarmRunning_TC3 = false;
