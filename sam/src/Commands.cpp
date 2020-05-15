@@ -685,6 +685,12 @@ void config_com(SckBase* base, String parameters)
 
 	sprintf(base->outBuff, "%sMac address:  %s", base->outBuff, base->config.mac.address);
 	base->sckOut();
+
+	if (base->config.extra.ccsBaselineValid)
+	{
+		sprintf(base->outBuff, "%sCCS811 Baseline: %xh", base->outBuff, base->config.extra.ccsBaseline);
+		base->sckOut();
+	}
 }
 void esp_com(SckBase* base, String parameters)
 {

@@ -58,15 +58,15 @@ void SckBase::setup()
 		rtc.setDate(1, 1, 15);
 	}
 	espStarted = rtc.getEpoch();
-    startTime = rtc.getEpoch();
+	startTime = rtc.getEpoch();
 
-    if (SANITY_RESET)
-    {
-        // Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
-        rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-        rtc.enableAlarm(rtc.MATCH_HHMMSS);
-        rtc.attachInterrupt(ext_reset);
-    }
+	if (SANITY_RESET)
+	{
+		// Sanity cyclic reset: If the clock is synced the reset will happen 3 hour after midnight (UTC) otherwise the reset will happen 3 hour after booting
+		rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
+		rtc.enableAlarm(rtc.MATCH_HHMMSS);
+		rtc.attachInterrupt(ext_reset);
+	}
 
 	// SDcard and flash select pins
 	pinMode(pinCS_SDCARD, OUTPUT);
@@ -266,39 +266,39 @@ void SckBase::reviewState()
 		}
 	}
 
-    if (urbanPresent)
-    {
-        /* CCS811 baseline */
-        uint32_t minSinceStart = (rtc.getEpoch() - startTime) / 60;
-        /* Conditioning period: 20min */
-        if (!runinPassed && minSinceStart > 20)
-        {
-            runinPassed = true;
+	if (urbanPresent)
+	{
+		/* CCS811 baseline */
+		uint32_t minSinceStart = (rtc.getEpoch() - startTime) / 60;
+		/* Conditioning period: 20min */
+		if (!runinPassed && minSinceStart > 20)
+		{
+			runinPassed = true;
 
-            // CSS vocs sensor baseline loading - must be done after conditioning period.
-            if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
-                sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
-                sckOut();
-                urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
-            }
-        }
+			// CSS vocs sensor baseline loading - must be done after conditioning period.
+			if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
+				sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
+				sckOut();
+				urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+			}
+		}
 
-        if (runinPassed)
-        {
-            uint32_t periodStart = startTime;
-            if (lastBaselineWrite != 0)
-                periodStart = lastBaselineWrite;
-            uint32_t daysSinceWrite = (rtc.getEpoch() - periodStart) / (60 * 60 * 24);
-            if (daysSinceWrite > 7)
-            {
-                saveCCS811Baseline();
-                lastBaselineWrite = rtc.getEpoch();
-            }
-        }
-    }
+		if (runinPassed)
+		{
+			uint32_t periodStart = startTime;
+			if (lastBaselineWrite != 0)
+				periodStart = lastBaselineWrite;
+			uint32_t daysSinceWrite = (rtc.getEpoch() - periodStart) / (60 * 60 * 24);
+			if (daysSinceWrite > 7)
+			{
+				saveCCS811Baseline();
+				lastBaselineWrite = rtc.getEpoch();
+			}
+		}
+	}
 
 	/* struct SckState { */
-	/* bool onSetup --  in from enterSetup() and out from saveConfig()*/
+	/* bool onSetup --	in from enterSetup() and out from saveConfig()*/
 	/* bool espON */
 	/* bool wifiSet */
 	/* bool tokenSet */
@@ -795,6 +795,9 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].enabled = sensors[static_cast<SensorType>(i)].defaultEnabled;
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
+
+		config.extra.ccsBaselineValid = false;
+
 		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
@@ -1355,7 +1358,7 @@ void SckBase::saveCCS811Baseline()
 // **** Power
 void SckBase::sck_reset()
 {
-    saveCCS811Baseline();
+	saveCCS811Baseline();
 
 	sckOut("Bye!!");
 	NVIC_SystemReset();
@@ -1406,16 +1409,16 @@ void SckBase::goToSleep(uint16_t sleepPeriod)
 		LowPower.deepSleep(sleepPeriod);
 	}
 
-    if (SANITY_RESET)
-    {
-        // Re enable Sanity cyclic reset
-        rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
-        rtc.enableAlarm(rtc.MATCH_HHMMSS);
-        rtc.attachInterrupt(ext_reset);
-    }
+	if (SANITY_RESET)
+	{
+		// Re enable Sanity cyclic reset
+		rtc.setAlarmTime(wakeUP_H, wakeUP_M, wakeUP_S);
+		rtc.enableAlarm(rtc.MATCH_HHMMSS);
+		rtc.attachInterrupt(ext_reset);
+	}
 
 	// Recover Noise sensor timer
-	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);  // Select GCLK4
+	REG_GCLK_GENCTRL = GCLK_GENCTRL_ID(4);	// Select GCLK4
 	while (GCLK->STATUS.bit.SYNCBUSY);
 }
 void SckBase::updatePower()
