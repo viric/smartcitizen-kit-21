@@ -233,6 +233,7 @@ class Sck_CCS811
 		bool setBaseline(uint16_t wichBaseline);
 		bool setDriveMode(uint8_t wichDrivemode);
         uint8_t getErrorRegister();
+        bool getFWAppVersion(uint8_t *major, uint8_t *minor, uint8_t *trivial);
 
 		//Mode 0 = Idle
 		//Mode 1 = read every 1s

@@ -158,9 +158,16 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
 					
                 } else if (command.startsWith("status")) {
-					sprintf(base->outBuff, "compensate: %s",
-                            sck_ccs811.compensate ? "true" : "false");
-					base->sckOut();
+					uint8_t major, minor, trivial;
+					bool ok = sck_ccs811.getFWAppVersion(&major, &minor, &trivial);
+					if (ok) {
+						sprintf(base->outBuff, "fw app version: %u.%u.%u",
+								major, minor, trivial);
+						base->sckOut();
+					} else {
+						sprintf(base->outBuff, "fw app version: failed");
+						base->sckOut();
+					}
 					sprintf(base->outBuff, "mode: %i",
                             sck_ccs811.driveMode);
 					base->sckOut();
@@ -169,6 +176,9 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					base->sckOut();
 					sprintf(base->outBuff, "error register: 0x%hx",
                             sck_ccs811.getErrorRegister());
+					base->sckOut();
+					sprintf(base->outBuff, "compensate: %s",
+                            sck_ccs811.compensate ? "true" : "false");
 					base->sckOut();
 					return true;
 				} else if (command.startsWith("help") || command.length() == 0) {
@@ -1160,3 +1170,15 @@ bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)
 	return true;
 }
 
+bool Sck_CCS811::getFWAppVersion(uint8_t *major, uint8_t *minor, uint8_t *trivial)
+{
+	uint8_t version[2];
+	CCS811Core::CCS811_Status_e returnError = 
+		ccs.multiReadRegister(CSS811_APP_START, version, sizeof version);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return false;
+	*major = (version[0] >> 4) & 0xf;
+	*minor = version[0] & 0xf;
+	*trivial = version[1];
+	return true;
+}
