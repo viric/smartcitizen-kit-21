@@ -174,9 +174,17 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					sprintf(base->outBuff, "getBaseline: 0x%hx",
                             sck_ccs811.getBaseline());
 					base->sckOut();
-					sprintf(base->outBuff, "error register: 0x%hx",
-                            sck_ccs811.getErrorRegister());
-					base->sckOut();
+					uint8_t errorcode;
+					bool statusError = sck_ccs811.getStatusError(&errorcode);
+					if (statusError) {
+						sprintf(base->outBuff, "status error: error 0x%x",
+								errorcode);
+						base->sckOut();
+					} else {
+						sprintf(base->outBuff, "status error: no error");
+						base->sckOut();
+					}
+
 					sprintf(base->outBuff, "compensate: %s",
                             sck_ccs811.compensate ? "true" : "false");
 					base->sckOut();
@@ -1148,12 +1156,17 @@ uint16_t Sck_CCS811::getBaseline()
 	}
 	return ccs.getBaseline();
 }
-uint8_t Sck_CCS811::getErrorRegister()
+bool Sck_CCS811::getStatusError(uint8_t *errorcode)
 {
 	if (!alreadyStarted) {
 		if (!start()) return 0;
 	}
-	return ccs.getErrorRegister();
+	if (ccs.checkForStatusError())
+	{
+		*errorcode = ccs.getErrorRegister();
+		return true;
+	}
+	return false;
 }
 bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 {
