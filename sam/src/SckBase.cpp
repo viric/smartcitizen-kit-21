@@ -327,15 +327,20 @@ void SckBase::reviewState()
 
 
 	} else if (st.onSetup) {
-
-
+		updateSensors();
+		if (timeToPublish) {
+			if (readingsList.countGroups() > 0) {
+				espReadPublish();
+				timeToPublish = false;
+				lastPublishTime = rtc.getEpoch();
+			}
+		}
 	} else if (sckOFF) {
 
 
 	} else if (st.mode == MODE_NOT_CONFIGURED) {
 
 		if (!st.onSetup) enterSetup();
-
 	} else if (st.mode == MODE_NET) {
 
 		if (!st.wifiSet) {
@@ -1510,9 +1515,12 @@ void SckBase::updatePower()
 // **** Sensors
 void SckBase::updateSensors()
 {
-	if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) st.timeStat.reset();
-	if (!st.timeStat.ok) return;
-	if (st.onSetup) return;
+	if (!st.onSetup)
+	{
+		if (!rtc.isConfigured() || rtc.getEpoch() < 1514764800) st.timeStat.reset();
+		if (!st.timeStat.ok) return;
+	}
+
 	if (st.mode == MODE_SD && !st.cardPresent) return; // TODO this should be removed when flash memory is implemented
 
 	// Main reading loop
@@ -1947,6 +1955,44 @@ bool SckBase::sdPublish()
 		st.cardPresentError = false;
 	}
 	return false;
+}
+
+void SckBase::espReadPublish()
+{
+	if (!st.espON)
+		return;
+
+	StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+	JsonObject& json = jsonBuffer.createObject();
+
+	// From the saved groups check wich one's need to be published to sdcard
+	uint32_t savedGroups = readingsList.countGroups();
+	for (uint32_t thisGroup=0; thisGroup<savedGroups; thisGroup++) {
+		uint16_t readingsOnThisGroup = readingsList.countReadings(thisGroup);
+
+		// Save time
+		epoch2iso(readingsList.getTime(thisGroup), ISOtimeBuff);
+		postFile.file.print(ISOtimeBuff);
+
+
+		// Go through all the enabled sensors
+		for (uint8_t i=0; i<SENSOR_COUNT; i++) {
+			SensorType whichSensor = sensors.sensorsPriorized(i);
+			if (sensors[whichSensor].enabled) {
+				for (uint16_t re=0; re<readingsOnThisGroup; re++) {
+					OneReading thisReading = readingsList.readReading(thisGroup, re);
+					if (thisReading.type == whichSensor) {
+						json[sensors[whichSensor].title] = thisReading.value;
+					}
+				}
+			}
+		}
+	}
+	sprintf(netBuff, "%c", ESPMES_NEW_READ);
+	json.prettyPrintTo(&netBuff[1], json.measureLength() + 1);
+	sendMessage();
+
+	for (uint8_t i=0; i<savedGroups; i++) readingsList.delLastGroup();
 }
 
 // **** Time

@@ -56,6 +56,8 @@ void SckESP::setup()
 	}
 	if (!sendStartInfo()) bootedPending = true;
 
+	snprintf(jsonReads, sizeof(jsonReads), "{}");
+
 	// Date for Web server
 	sprintf(last_modified, "%s %s GMT", __DATE__, __TIME__);
 }
@@ -272,6 +274,9 @@ void SckESP::receiveMessage(ESPMessage wichMessage)
 				} else sendMessage(SAMMES_MQTT_CUSTOM_ERROR, "");
 				break;
 		}
+		case ESPMES_NEW_READ:
+			snprintf(jsonReads, sizeof(jsonReads), "%s", netBuff);
+			break;
 		case ESPMES_CONNECT:
 
 			tryConnection();
@@ -567,6 +572,9 @@ void SckESP::startWebServer()
 	// Handle status request
 	webServer.on("/status", HTTP_GET, extStatus);
 
+	// Handle status request
+	webServer.on("/read", HTTP_GET, extRead);
+
 	// Handle token request
 	webServer.on("/token", HTTP_GET, [&] (AsyncWebServerRequest *request) {
 		// {"token":"123123"}
@@ -706,6 +714,13 @@ void SckESP::webSet(AsyncWebServerRequest *request)
 		}
 	}
 }
+
+void SckESP::webRead(AsyncWebServerRequest *request)
+{
+	request->send(200, "text/json", jsonReads);
+	request->send(200);
+}
+
 void SckESP::webRoot(AsyncWebServerRequest *request)
 {
     // Check if the client already has the same version and respond with a 304 (Not modified)

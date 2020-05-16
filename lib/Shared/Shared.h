@@ -20,6 +20,7 @@ enum ESPMessage {
 	ESPMES_MQTT_INVENTORY, 		// SAM->ESP, ESP publish inventory and returns result
 	ESPMES_MQTT_INFO, 		// SAM->ESP, ESP publish info and return result
 	ESPMES_MQTT_CUSTOM, 		// SAM->ESP, ESP publish custom message on custom topic
+	ESPMES_NEW_READ, 		// SAM->ESP, ESP gets new read of sensors
 
 	ESPMES_COUNT
 };

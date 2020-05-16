@@ -118,6 +118,7 @@ class SckESP
 		WiFiUDP Udp;
 		byte packetBuffer[48];
 
+		char jsonReads[NETBUFF_SIZE];
 
 	public:
 		const String ESPversion = ESPverNum + "-" + String(__GIT_HASH__); 	// mayor.minor.build-gitcommit
@@ -131,6 +132,7 @@ class SckESP
 		void update();
 		void webSet(AsyncWebServerRequest *request);
 		void webStatus(AsyncWebServerRequest *request);
+		void webRead(AsyncWebServerRequest *request);
 		void webRoot(AsyncWebServerRequest *request);
 
 		// External calls
@@ -144,6 +146,7 @@ void ledToggle();
 // Static webserver handlers
 void extSet(AsyncWebServerRequest *request);
 void extStatus(AsyncWebServerRequest *request);
+void extRead(AsyncWebServerRequest *request);
 void extRoot(AsyncWebServerRequest *request);
 
 // Time

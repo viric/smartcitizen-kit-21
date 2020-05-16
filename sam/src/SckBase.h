@@ -164,6 +164,7 @@ class SckBase
 		void updateSensors();
 		bool netPublish();
 		bool sdPublish();
+		void espReadPublish();
 		uint8_t pendingSensors = 0;
 		SensorType pendingSensorsList[SENSOR_COUNT];
         uint32_t startTime = 0;

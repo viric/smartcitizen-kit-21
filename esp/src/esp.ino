@@ -28,6 +28,10 @@ void extStatus(AsyncWebServerRequest *request)
 {
 	esp.webStatus(request);
 }
+void extRead(AsyncWebServerRequest *request)
+{
+	esp.webRead(request);
+}
 void extRoot(AsyncWebServerRequest *request)
 {
 	esp.webRoot(request);
