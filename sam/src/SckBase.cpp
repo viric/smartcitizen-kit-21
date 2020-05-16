@@ -1989,7 +1989,10 @@ void SckBase::espReadPublish()
 		}
 	}
 	sprintf(netBuff, "%c", ESPMES_NEW_READ);
-	json.prettyPrintTo(&netBuff[1], json.measureLength() + 1);
+	uint32_t msglen = json.measurePrettyLength() + 1;
+	if (msglen > sizeof(netBuff))
+		msglen = sizeof(netBuff);
+	json.prettyPrintTo(&netBuff[1], msglen);
 	sendMessage();
 
 	for (uint8_t i=0; i<savedGroups; i++) readingsList.delLastGroup();
