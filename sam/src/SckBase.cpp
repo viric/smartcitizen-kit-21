@@ -1961,7 +1961,8 @@ bool SckBase::setTime(String epoch)
 		lastPublishTime = rtc.getEpoch() - timeSinceLastPublish;
 		espStarted = rtc.getEpoch() - timeSinceEspStarted;
 		startTime = rtc.getEpoch() - timeSinceSamStarted;
-		lastBaselineWrite = rtc.getEpoch() - timeSinceLastBaselineWrite;
+		if (lastBaselineWrite != 0)
+			lastBaselineWrite = rtc.getEpoch() - timeSinceLastBaselineWrite;
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
