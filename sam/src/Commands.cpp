@@ -663,6 +663,10 @@ void config_com(SckBase* base, String parameters)
 					base->config.token.set = true;
 				}
 			}
+			int16_t clearI = parameters.indexOf("-clearbaseline");
+			if (clearI >= 0) {
+				base->config.extra.ccsBaselineValid = false;
+			}
 			base->saveConfig();
 		}
 		sprintf(base->outBuff, "-- New config --\r\n");
