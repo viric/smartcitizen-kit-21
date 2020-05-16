@@ -276,10 +276,19 @@ void SckBase::reviewState()
 			runinPassed = true;
 
 			// CSS vocs sensor baseline loading - must be done after conditioning period.
-			if (config.extra.ccsBaselineValid && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
-				sprintf(outBuff, "Updating CCS sensor baseline: %u", config.extra.ccsBaseline);
+			if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
+				sprintf(outBuff, "CSS811 Run-in period passed.\r\n");
 				sckOut();
-				urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+
+				if (config.extra.ccsBaselineValid) {
+					sprintf(outBuff, "Updating CCS sensor baseline: %u.\r\n", config.extra.ccsBaseline);
+					sckOut();
+					urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+				} else {
+					sprintf(outBuff, "No CSS baseline present to load.\r\n", config.extra.ccsBaseline);
+					sckOut();
+					urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
+				}
 			}
 		}
 
