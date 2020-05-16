@@ -1187,7 +1187,7 @@ bool Sck_CCS811::getFWAppVersion(uint8_t *major, uint8_t *minor, uint8_t *trivia
 {
 	uint8_t version[2];
 	CCS811Core::CCS811_Status_e returnError = 
-		ccs.multiReadRegister(CSS811_APP_START, version, sizeof version);
+		ccs.multiReadRegister(CSS811_FW_APP_VERSION, version, sizeof version);
 	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
 		return false;
 	*major = (version[0] >> 4) & 0xf;
