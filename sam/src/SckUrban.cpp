@@ -1,5 +1,6 @@
 #include "SckUrban.h"
 #include "SckBase.h"
+#include "CCS811_FW_App_v2-0-1.h"
 
 // Hardware Serial UART PM
 Uart SerialPM (&sercom5, pinPM_SERIAL_RX, pinPM_SERIAL_TX, SERCOM_RX_PAD_1, UART_TX_PAD_0);
@@ -188,6 +189,13 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					sprintf(base->outBuff, "compensate: %s",
                             sck_ccs811.compensate ? "true" : "false");
 					base->sckOut();
+					return true;
+				} else if (command.startsWith("flash201")) {
+					uint8_t res = sck_ccs811.flash201();
+					if (res != 0) {
+						sprintf(base->outBuff, "flash error: %i", res);
+						base->sckOut();
+					}
 					return true;
 				} else if (command.startsWith("help") || command.length() == 0) {
 				
@@ -1187,11 +1195,94 @@ bool Sck_CCS811::getFWAppVersion(uint8_t *major, uint8_t *minor, uint8_t *trivia
 {
 	uint8_t version[2];
 	CCS811Core::CCS811_Status_e returnError = 
-		ccs.multiReadRegister(CSS811_APP_START, version, sizeof version);
+		ccs.multiReadRegister(CSS811_FW_APP_VERSION, version, sizeof version);
 	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
 		return false;
 	*major = (version[0] >> 4) & 0xf;
 	*minor = version[0] & 0xf;
 	*trivial = version[1];
 	return true;
+}
+
+uint8_t Sck_CCS811::flash201()
+{
+	return flash(image_data, sizeof(image_data));
+}
+
+uint8_t Sck_CCS811::flash(const uint8_t *data, uint32_t len)
+{
+	/* Porting the code from  https://github.com/maarten-pennings/CCS811 */
+	uint8_t resetdata[4] = {0x11, 0xE5, 0x72, 0x8A}; //Reset key
+	CCS811Core::CCS811_Status_e returnError;
+	constexpr uint8_t CSS811_APP_ERASE = 0xF1;
+	constexpr uint8_t CSS811_APP_DATA = 0xF2;
+	constexpr uint8_t CSS811_APP_VERIFY = 0xF4;
+
+	//Reset the device
+	returnError = ccs.multiWriteRegister(CSS811_SW_RESET, resetdata, 4);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 1;
+
+	delayMicroseconds(2000 /*CCS811_WAIT_AFTER_RESET_US*/);
+
+	uint8_t status;
+	returnError = ccs.readRegister(CSS811_STATUS, &status);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 2;
+	/* Ignoring status */
+
+	uint8_t app_erase[]=  {0xE7,0xA7,0xE6,0x09};
+	returnError = ccs.multiWriteRegister(CSS811_APP_ERASE, app_erase, sizeof(app_erase));
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 3;
+
+	delay(500 /*CCS811_WAIT_AFTER_APPERASE_MS*/);
+
+	returnError = ccs.readRegister(CSS811_STATUS, &status);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 4;
+	if (status != 0x40) /* app-erase status */
+		return 5;
+
+	/* Write blocks */
+	while(len > 0)
+	{
+		uint8_t ram[8];
+		uint8_t block = 8;
+		if (len < block)
+			block = len;
+		memcpy_P(ram, data, block);
+		returnError = ccs.multiWriteRegister(CSS811_APP_DATA, ram, block);
+		if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+			return 6;
+		data += block;
+		len -= block;
+	}
+
+	returnError = ccs.multiWriteRegister(CSS811_APP_VERIFY, 0, 0);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 7;
+
+	delay(70 /*CCS811_WAIT_AFTER_APPVERIFY_MS*/);
+
+	returnError = ccs.readRegister(CSS811_STATUS, &status);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 8;
+	if (status != 0x30) /* app-verify status */
+		return 9;
+
+	//Reset the device
+	returnError = ccs.multiWriteRegister(CSS811_SW_RESET, resetdata, 4);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 10;
+
+	delayMicroseconds(2000 /*CCS811_WAIT_AFTER_RESET_US*/);
+
+	returnError = ccs.readRegister(CSS811_STATUS, &status);
+	if (returnError != CCS811Core::CCS811_Stat_SUCCESS)
+		return 11;
+	if (status != 0x10)
+		return 12;
+
+	return 0;
 }
