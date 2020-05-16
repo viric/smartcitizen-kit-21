@@ -683,12 +683,12 @@ void config_com(SckBase* base, String parameters)
 	if (currentConfig.token.set) sprintf(base->outBuff, "%s%s\r\n", base->outBuff, currentConfig.token.token);
 	else sprintf(base->outBuff, "%snot configured\r\n", base->outBuff);
 
-	sprintf(base->outBuff, "%sMac address:  %s", base->outBuff, base->config.mac.address);
+	sprintf(base->outBuff, "%sMac address:  %s\r\n", base->outBuff, base->config.mac.address);
 	base->sckOut();
 
 	if (base->config.extra.ccsBaselineValid)
 	{
-		sprintf(base->outBuff, "%sCCS811 Baseline: %xh", base->outBuff, base->config.extra.ccsBaseline);
+		sprintf(base->outBuff, "%sCCS811 Baseline: 0x%hx\r\n", base->outBuff, base->config.extra.ccsBaseline);
 		base->sckOut();
 	}
 }

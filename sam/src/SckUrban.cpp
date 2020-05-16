@@ -1126,7 +1126,7 @@ bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 	if (!alreadyStarted) {
 		if (!start()) return false;
 	}
-	if (ccs.setBaseline(wichBaseline) != ccs.CCS811_Stat_SUCCESS); return false;
+	if (ccs.setBaseline(wichBaseline) != ccs.CCS811_Stat_SUCCESS) return false;
 	return true;
 }
 bool Sck_CCS811::setDriveMode(uint8_t wichDrivemode)

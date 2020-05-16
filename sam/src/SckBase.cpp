@@ -1346,7 +1346,7 @@ void SckBase::saveCCS811Baseline()
 	if (runinPassed && I2Cdetect(&Wire, urban.sck_ccs811.address)) {
 		uint16_t savedBaseLine = urban.sck_ccs811.getBaseline();
 		if (savedBaseLine != 0)	{
-			sprintf(outBuff, "Saved CCS baseline on eeprom: %u", savedBaseLine);
+			sprintf(outBuff, "Saved CCS baseline on eeprom: 0x%hx", savedBaseLine);
 			sckOut();
 			config.extra.ccsBaseline = savedBaseLine;
 			config.extra.ccsBaselineValid = true;
@@ -1947,6 +1947,8 @@ bool SckBase::setTime(String epoch)
 	uint32_t timeSinceLastUpdate = rtc.getEpoch() - lastSensorUpdate;
 	uint32_t timeSinceLastPublish = rtc.getEpoch() - lastPublishTime;
 	uint32_t timeSinceEspStarted = rtc.getEpoch() - espStarted;
+	uint32_t timeSinceSamStarted = rtc.getEpoch() - startTime;
+	uint32_t timeSinceLastBaselineWrite = rtc.getEpoch() - lastBaselineWrite;
 
 	rtc.setEpoch(epoch.toInt());
 	int32_t diff = rtc.getEpoch() - epoch.toInt();
@@ -1958,6 +1960,8 @@ bool SckBase::setTime(String epoch)
 		lastSensorUpdate = rtc.getEpoch() - timeSinceLastUpdate;
 		lastPublishTime = rtc.getEpoch() - timeSinceLastPublish;
 		espStarted = rtc.getEpoch() - timeSinceEspStarted;
+		startTime = rtc.getEpoch() - timeSinceSamStarted;
+		lastBaselineWrite = rtc.getEpoch() - timeSinceLastBaselineWrite;
 
 		ISOtime();
 		sprintf(outBuff, "RTC updated: %s", ISOtimeBuff);
