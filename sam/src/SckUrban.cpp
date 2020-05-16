@@ -143,7 +143,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					if (command.length() == 0) {
 						sprintf(base->outBuff, "Current drive mode: %u", sck_ccs811.driveMode);
 						base->sckOut();
-						return "\r\n";
+						return "true";
 					}
 
 					uint8_t newDriveMode = command.toInt();
@@ -157,11 +157,28 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::CCS811_Stat_SUCCESS) return F("Failed to set new drive mode");
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
 					
+                } else if (command.startsWith("status")) {
+					sprintf(base->outBuff, "compensate: %s",
+                            sck_ccs811.compensate ? "true" : "false");
+					base->sckOut();
+					sprintf(base->outBuff, "mode: %i",
+                            sck_ccs811.driveMode);
+					base->sckOut();
+					sprintf(base->outBuff, "getBaseline: 0x%hx",
+                            sck_ccs811.getBaseline());
+					base->sckOut();
+					sprintf(base->outBuff, "error register: 0x%hx",
+                            sck_ccs811.getErrorRegister());
+					base->sckOut();
+					return true;
 				} else if (command.startsWith("help") || command.length() == 0) {
 				
-					sprintf(base->outBuff, "Available commands:\r\n* compensate (toggles temp/hum compensation)\r\n* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)");
+					sprintf(base->outBuff, "Available commands:\r\n"
+                            "* compensate (toggles temp/hum compensation)\r\n"
+                            "* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)\r\n"
+                            "* status");
 					base->sckOut();
-					return "\r\n";
+					return true;
 				}
 
 		}
@@ -1117,9 +1134,16 @@ bool Sck_CCS811::getReading(SckBase *base)
 uint16_t Sck_CCS811::getBaseline()
 {
 	if (!alreadyStarted) {
-		if (!start()) return false;
+		if (!start()) return 0;
 	}
 	return ccs.getBaseline();
+}
+uint8_t Sck_CCS811::getErrorRegister()
+{
+	if (!alreadyStarted) {
+		if (!start()) return 0;
+	}
+	return ccs.getErrorRegister();
 }
 bool Sck_CCS811::setBaseline(uint16_t wichBaseline)
 {

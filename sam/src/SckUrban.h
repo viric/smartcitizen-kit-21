@@ -232,6 +232,7 @@ class Sck_CCS811
 		uint16_t getBaseline();
 		bool setBaseline(uint16_t wichBaseline);
 		bool setDriveMode(uint8_t wichDrivemode);
+        uint8_t getErrorRegister();
 
 		//Mode 0 = Idle
 		//Mode 1 = read every 1s

@@ -281,7 +281,7 @@ void SckBase::reviewState()
 				sckOut();
 
 				if (config.extra.ccsBaselineValid) {
-					sprintf(outBuff, "Updating CCS sensor baseline: %u.\r\n", config.extra.ccsBaseline);
+					sprintf(outBuff, "Updating CCS sensor baseline: 0x%hx.\r\n", config.extra.ccsBaseline);
 					sckOut();
 					urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
 				} else {
