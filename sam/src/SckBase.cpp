@@ -1372,8 +1372,6 @@ void SckBase::saveCCS811Baseline()
 // **** Power
 void SckBase::sck_reset()
 {
-	saveCCS811Baseline();
-
 	sckOut("Bye!!");
 	NVIC_SystemReset();
 }
