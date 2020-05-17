@@ -805,8 +805,6 @@ void SckBase::saveConfig(bool defaults)
 			config.sensors[i].everyNint = sensors[static_cast<SensorType>(i)].defaultEveryNint;
 		}
 
-		config.extra.ccsBaselineValid = false;
-
 		pendingSyncConfig = true;
 	} else {
 		for (uint8_t i=0; i<SENSOR_COUNT; i++) {

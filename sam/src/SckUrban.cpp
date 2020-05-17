@@ -131,10 +131,8 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 		case SENSOR_CCS811_ECO2:
 		{
 				if (command.startsWith("compensate")) {
-				
-					sck_ccs811.compensate = !sck_ccs811.compensate;
-					return (sck_ccs811.compensate ? "True" : "False");
-				
+					base->config.extra.ccsCompensate = !base->config.extra.ccsCompensate;
+					return true;
 				} else if (command.startsWith("mode")) {
 				
 					command.replace("mode", "");
@@ -186,7 +184,7 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					}
 
 					sprintf(base->outBuff, "compensate: %s",
-                            sck_ccs811.compensate ? "true" : "false");
+							base->config.extra.ccsCompensate ? "true" : "false");
 					base->sckOut();
 					return true;
 				} else if (command.startsWith("help") || command.length() == 0) {
@@ -1131,7 +1129,7 @@ bool Sck_CCS811::getReading(SckBase *base)
 	VOCgas = ccs.getTVOC();
 	ECO2gas = ccs.getCO2();
 
-	if (compensate) {
+	if (base->config.extra.ccsCompensate) {
 		if (base->sensors[SENSOR_TEMPERATURE].enabled && base->sensors[SENSOR_HUMIDITY].enabled) {
 			base->getReading(&base->sensors[SENSOR_HUMIDITY]);
 			base->getReading(&base->sensors[SENSOR_TEMPERATURE]);
