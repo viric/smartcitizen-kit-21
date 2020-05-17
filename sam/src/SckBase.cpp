@@ -1989,9 +1989,10 @@ void SckBase::espReadPublish()
 		if (runinPassed)
 			json["css811 run-in passed"] = true;
 		json["css811 baseline"] = String(urban.sck_ccs811.getBaseline(), HEX);
-	}
-	if (config.extra.ccsBaselineValid) {
-		json["css811 rom baseline"] = String(config.extra.ccsBaseline, HEX);
+		if (config.extra.ccsBaselineValid) {
+			json["css811 rom baseline"] = String(config.extra.ccsBaseline, HEX);
+		}
+		json["css811 compensate"] = config.extra.ccsCompensate;
 	}
 
 	sprintf(netBuff, "%c", ESPMES_NEW_READ);
