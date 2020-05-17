@@ -1980,12 +1980,22 @@ void SckBase::espReadPublish()
 				for (uint16_t re=0; re<readingsOnThisGroup; re++) {
 					OneReading thisReading = readingsList.readReading(thisGroup, re);
 					if (thisReading.type == whichSensor) {
-						json[sensors[whichSensor].title] = thisReading.value;
+						const OneSensor &s = sensors[whichSensor];
+						json[s.shortTitle] = thisReading.value + " " + s.unit;
 					}
 				}
 			}
 		}
 	}
+	if (I2Cdetect(&Wire, urban.sck_ccs811.address)) {
+		if (runinPassed)
+			json["css811 run-in passed"] = true;
+		json["css811 baseline"] = String(urban.sck_ccs811.getBaseline(), HEX);
+	}
+	if (config.extra.ccsBaselineValid) {
+		json["css811 rom baseline"] = String(config.extra.ccsBaseline, HEX);
+	}
+
 	sprintf(netBuff, "%c", ESPMES_NEW_READ);
 	uint32_t msglen = json.measurePrettyLength() + 1;
 	if (msglen > sizeof(netBuff))
