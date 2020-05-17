@@ -276,8 +276,7 @@ void sensorConfig_com(SckBase* base, String parameters)
 		} else if (parameters.indexOf("-interval") >=0) {
 			String msg;
 			msg = "Changing interval of ";
-			sensorIndex = parameters.indexOf(" ", parameters.indexOf("-interval"));
-			int16_t intervalIndex = parameters.indexOf(" ", sensorIndex+1);
+			int16_t intervalIndex = parameters.lastIndexOf(" ");
 			String strInterval = parameters.substring(intervalIndex);
 			uint32_t intervalInt = strInterval.toInt();
 			uint8_t everyNint_pre = intervalInt / base->config.readInterval;

@@ -127,11 +127,16 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					base->sckOut();
 					return true;
 				}
-		} case SENSOR_CCS811_VOCS:
+				break;
+		}
+		case SENSOR_CCS811_VOCS:
 		case SENSOR_CCS811_ECO2:
 		{
 				if (command.startsWith("compensate")) {
 					base->config.extra.ccsCompensate = !base->config.extra.ccsCompensate;
+					sprintf(base->outBuff, "compensate set to: %s",
+                            base->config.extra.ccsCompensate ? "true" : "false");
+					base->sckOut();
 					return true;
 				} else if (command.startsWith("mode")) {
 				
@@ -155,7 +160,21 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					if (sck_ccs811.setDriveMode(newDriveMode) != CCS811Core::CCS811_Stat_SUCCESS) return F("Failed to set new drive mode");
 					else return String F("Drivemode set to ") + String(sck_ccs811.driveMode);
 					
-                } else if (command.startsWith("status")) {
+				} else if (command.startsWith("baseline")) {
+					command.replace("baseline", "");
+					command.trim();
+
+					uint16_t newbaseline = strtol(command.c_str(), 0, 16);
+					bool ok = sck_ccs811.setBaseline(newbaseline);
+					if (ok) {
+						sprintf(base->outBuff, "New baseline set: 0x%x", newbaseline);
+						base->sckOut();
+					} else {
+						sprintf(base->outBuff, "Error setting baseline: 0x%x", newbaseline);
+						base->sckOut();
+					}
+					return true;
+				} else if (command.startsWith("status")) {
 					uint8_t major, minor, trivial;
 					bool ok = sck_ccs811.getFWAppVersion(&major, &minor, &trivial);
 					if (ok) {
@@ -168,6 +187,9 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					}
 					sprintf(base->outBuff, "mode: %i",
                             sck_ccs811.driveMode);
+					base->sckOut();
+					sprintf(base->outBuff, "run-in passed: %s",
+							base->getRuninPassed() ? "true":"false");
 					base->sckOut();
 					sprintf(base->outBuff, "getBaseline: 0x%hx",
                             sck_ccs811.getBaseline());
@@ -192,11 +214,12 @@ bool SckUrban::control(SckBase *base, SensorType wichSensor, String command)
 					sprintf(base->outBuff, "Available commands:\r\n"
                             "* compensate (toggles temp/hum compensation)\r\n"
                             "* mode [0-4] (0-idle, 1-1s, 2-10s, 3-60s, 4-raw)\r\n"
+                            "* baseline XXXX (set baseline to hex num)\r\n"
                             "* status");
 					base->sckOut();
 					return true;
 				}
-
+			break;
 		}
 		default: break;
 	}

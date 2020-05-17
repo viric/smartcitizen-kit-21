@@ -287,7 +287,6 @@ void SckBase::reviewState()
 				} else {
 					sprintf(outBuff, "No CSS baseline present to load.\r\n", config.extra.ccsBaseline);
 					sckOut();
-					urban.sck_ccs811.setBaseline(config.extra.ccsBaseline);
 				}
 			}
 		}
