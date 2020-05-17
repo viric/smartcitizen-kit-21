@@ -61,6 +61,13 @@ void SckBase::buttonStillDown()
 		led.off();
 
 		ESPcontrol(ESP_OFF);
+	} else if (pressedTime >= 2000 && !sckOFF) {
+
+		sprintf(outBuff, "Button pressed for %lu milliseconds: Long press", pressedTime);
+		sckOut(PRIO_LOW);
+
+		led.update(led.BLUE2, led.PULSE_STATIC);
+		saveCCS811Baseline();
 	}
 
 }
