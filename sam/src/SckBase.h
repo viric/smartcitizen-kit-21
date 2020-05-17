@@ -208,6 +208,7 @@ class SckBase
 		bool controlSensor(SensorType wichSensorType, String wichCommand);
 		bool enableSensor(SensorType wichSensor);
 		bool disableSensor(SensorType wichSensor);
+		bool getRuninPassed() { return runinPassed; }
 		bool writeHeader = false;
 
 		// RAM readings store
